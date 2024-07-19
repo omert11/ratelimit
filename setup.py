@@ -1,24 +1,22 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 import ratelimit
 
 
-def readme() -> str:
-    """Read README file"""
-    with open("README.md") as infile:
-        return infile.read()
+with open("README.rst", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 
 setup(
     name="ratelimit-extended",
     version=ratelimit.__version__,
     description="API rate limit decorator",
-    long_description=readme().strip(),
+    long_description=long_description,
     author="Ömer Faruk Yığın",
     author_email="omert1122@gmail.com",
     url="https://github.com/omert11/ratelimit",
     license="MIT",
-    packages=["ratelimit"],
+    packages=find_packages(),
     install_requires=[],
     keywords=["ratelimit", "api", "decorator"],
     classifiers=[
