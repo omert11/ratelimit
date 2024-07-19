@@ -104,7 +104,6 @@ class RateLimitDecorator(object):
                         logger.warning(
                             self.log_message
                             or "Rate limit exceeded for %s function." % func.__name__,
-                            period_remaining,
                         )
                     else:
                         return
