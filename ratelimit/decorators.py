@@ -106,7 +106,8 @@ class RateLimitDecorator(object):
                             or "Rate limit exceeded for %s function." % func.__name__,
                             period_remaining,
                         )
-                    return
+                    else:
+                        return
 
             return func(*args, **kwargs)
 
