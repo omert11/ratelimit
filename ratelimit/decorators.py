@@ -6,19 +6,19 @@ Additionally this module includes a naive retry strategy to be used in
 conjunction with the rate limit decorator.
 """
 
-from functools import wraps
+import inspect
 import logging
-from math import floor
-
-import time
 import sys
 import threading
+import time
+from functools import wraps
+from math import floor
 from typing import Any, Callable
 
 from ratelimit.exception import RateLimitException
 from ratelimit.utils import now
-from .types import ClockCallable
 
+from .types import ClockCallable
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class RateLimitDecorator(object):
         raise_on_limit: bool = False,
         log_on_limit: bool = True,
         log_message: str | None = None,
+        log_trace_depth: int = 1,
     ) -> None:
         """
         Instantiate a RateLimitDecorator with some sensible defaults. By
@@ -53,6 +54,7 @@ class RateLimitDecorator(object):
         self.raise_on_limit = raise_on_limit
         self.log_on_limit = log_on_limit
         self.log_message = log_message
+        self.log_trace_depth = log_trace_depth
 
         # Initialise the decorator state.
         self.last_reset = clock()
@@ -100,11 +102,23 @@ class RateLimitDecorator(object):
                 if self.num_calls > self.clamped_calls:
                     if self.raise_on_limit:
                         raise RateLimitException("too many calls", period_remaining)
+
                     elif self.log_on_limit:
-                        logger.warning(
-                            self.log_message
-                            or "Rate limit exceeded for %s function." % func.__name__,
+                        message = (
+                            self.log_message or f"Rate limit exceeded: {func.__name__}"
                         )
+                        caller = self.__get_caller()
+                        if not caller:
+                            logger.warning(message)
+                        else:
+                            code_context = (
+                                caller.code_context[0].strip()
+                                if caller.code_context
+                                else "N/A"
+                            )
+                            logger.warning(
+                                f"{message}\n{caller.function} in {caller.filename}:{caller.lineno} {code_context}"  # noqa: E501
+                            )
                     else:
                         return
 
@@ -121,6 +135,21 @@ class RateLimitDecorator(object):
         """
         elapsed = self.clock() - self.last_reset
         return self.period - elapsed
+
+    def __get_caller(self) -> inspect.Traceback | None:
+        """
+        Return the name of the calling function.
+
+        :return: The name of the calling function.
+        :rtype: str
+        """
+        frame = inspect.currentframe()
+        for _ in range(self.log_trace_depth + 1):
+            if frame and frame.f_back is not None:
+                frame = frame.f_back
+        if frame is None:
+            return None
+        return inspect.getframeinfo(frame)
 
 
 def sleep_and_retry(func: Callable) -> Callable:

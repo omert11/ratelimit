@@ -3,7 +3,7 @@ from tests import unittest, clock
 
 
 class TestDecorator(unittest.TestCase):
-    @limits(calls=1, period=10, clock=clock)
+    @limits(calls=1, period=10, clock=clock, raise_on_limit=True)
     def increment(self) -> None:
         """
         Increment the counter at most once every 10 seconds.
@@ -41,4 +41,4 @@ class TestDecorator(unittest.TestCase):
         self.increment_no_exception()
         self.increment_no_exception()
 
-        self.assertEqual(self.count, 1)
+        self.assertEqual(self.count, 2)
