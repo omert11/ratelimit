@@ -37,6 +37,7 @@ class RateLimitDecorator(object):
         log_on_limit: bool = True,
         log_message: str | None = None,
         log_trace_depth: int = 3,
+        log_trace_pad: int = 0,
     ) -> None:
         """
         Instantiate a RateLimitDecorator with some sensible defaults. By
@@ -55,6 +56,7 @@ class RateLimitDecorator(object):
         self.log_on_limit = log_on_limit
         self.log_message = log_message
         self.log_trace_depth = log_trace_depth
+        self.log_trace_pad = log_trace_pad
 
         # Initialise the decorator state.
         self.last_reset = clock()
@@ -134,7 +136,12 @@ class RateLimitDecorator(object):
         :rtype: str
         """
         stack = traceback.format_stack()
-        return "\n".join(stack[-(self.log_trace_depth + 2) : -2])
+        return "\n".join(
+            stack[
+                -(self.log_trace_depth + 2 + self.log_trace_pad) : -2
+                - self.log_trace_pad
+            ]
+        )
 
 
 def sleep_and_retry(func: Callable) -> Callable:

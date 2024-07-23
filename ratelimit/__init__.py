@@ -17,4 +17,4 @@ rate_limited = RateLimitDecorator  # For backwards compatibility
 
 __all__ = ["RateLimitException", "limits", "rate_limited", "sleep_and_retry"]
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
