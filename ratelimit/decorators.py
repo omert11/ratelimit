@@ -6,13 +6,13 @@ Additionally this module includes a naive retry strategy to be used in
 conjunction with the rate limit decorator.
 """
 
-import inspect
 import logging
 import sys
 import threading
 import time
 from functools import wraps
 from math import floor
+import traceback
 from typing import Any, Callable
 
 from ratelimit.exception import RateLimitException
@@ -36,7 +36,7 @@ class RateLimitDecorator(object):
         raise_on_limit: bool = False,
         log_on_limit: bool = True,
         log_message: str | None = None,
-        log_trace_depth: int = 1,
+        log_trace_depth: int = 3,
     ) -> None:
         """
         Instantiate a RateLimitDecorator with some sensible defaults. By
@@ -107,18 +107,8 @@ class RateLimitDecorator(object):
                         message = (
                             self.log_message or f"Rate limit exceeded: {func.__name__}"
                         )
-                        caller = self.__get_caller()
-                        if not caller:
-                            logger.warning(message)
-                        else:
-                            code_context = (
-                                caller.code_context[0].strip()
-                                if caller.code_context
-                                else "N/A"
-                            )
-                            logger.warning(
-                                f"{message}\n{caller.function} in {caller.filename}:{caller.lineno} {code_context}"  # noqa: E501
-                            )
+                        stack_message = self.__get_stack_message()
+                        logger.warning(f"{message}\n{stack_message}")
                     else:
                         return
 
@@ -136,20 +126,15 @@ class RateLimitDecorator(object):
         elapsed = self.clock() - self.last_reset
         return self.period - elapsed
 
-    def __get_caller(self) -> inspect.Traceback | None:
+    def __get_stack_message(self) -> str:
         """
         Return the name of the calling function.
 
         :return: The name of the calling function.
         :rtype: str
         """
-        frame = inspect.currentframe()
-        for _ in range(self.log_trace_depth + 1):
-            if frame and frame.f_back is not None:
-                frame = frame.f_back
-        if frame is None:
-            return None
-        return inspect.getframeinfo(frame)
+        stack = traceback.format_stack()
+        return "\n".join(stack[-(self.log_trace_depth + 2) : -2])
 
 
 def sleep_and_retry(func: Callable) -> Callable:
